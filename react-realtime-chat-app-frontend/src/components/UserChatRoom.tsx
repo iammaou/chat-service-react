@@ -8,6 +8,11 @@ import { useRef } from "react";
 interface UserChatRoomProps {
   userData: userInfo | null;
   serverMessage: Record<string, any> | null;
+  onSendMessage: (
+    message: string,
+    sender: string | undefined,
+    recipient: string | null,
+  ) => void;
 }
 
 interface UserInfoServer {
@@ -51,11 +56,13 @@ export const fetchConnectedUserResponse = async (
 export default function UserChatRoom({
   userData,
   serverMessage,
+  onSendMessage,
 }: UserChatRoomProps) {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [userChat, setUserChat] = useState<UserChatInterface[]>([]);
   const [connectedUsers, setConnectedUsers] = useState<UserInfoServer[]>([]);
   const [notifiedUsers, setNotifiedUser] = useState<String[]>([]);
+  const [userMessage, setUserMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   //For fetching the whole user data from the server eighter on startup or when getting a message from the server
@@ -82,16 +89,8 @@ export default function UserChatRoom({
       fetchUserChat();
     }
 
-    const timer = setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "end",
-      });
-    }, 50);
-
     return () => {
       controller.abort();
-      clearTimeout(timer);
     };
   }, [userData?.nickname, serverMessage]);
 
@@ -103,15 +102,6 @@ export default function UserChatRoom({
       }
 
       fetchUserChat();
-
-      const timer = setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "end",
-        });
-      }, 50);
-
-      return () => clearTimeout(timer);
     }
   }, [selectedUser]);
 
@@ -125,8 +115,28 @@ export default function UserChatRoom({
     );
     setUserChat(await userChatResponse.json());
 
+    const timer = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+    }, 50);
+
     console.log(userChat);
+
+    return () => clearTimeout(timer);
   }
+
+  const onMessageSendButtonClick = (e: any) => {
+    e.preventDefault();
+
+    console.log(userMessage, userData?.nickname, selectedUser);
+    onSendMessage(userMessage, userData?.nickname, selectedUser);
+
+    setUserMessage("");
+
+    fetchUserChat();
+  };
 
   return (
     <div className="chat-container" id="chat-page">
@@ -181,8 +191,10 @@ export default function UserChatRoom({
               type="text"
               id="message"
               placeholder="Type your message..."
+              value={userMessage}
+              onChange={(e) => setUserMessage(e.target.value)}
             />
-            <button>Send</button>
+            <button onClick={onMessageSendButtonClick}>Send</button>
           </div>
         </form>
       </div>

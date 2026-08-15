@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Client, type IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 
@@ -13,6 +13,7 @@ export default function ChatApp() {
     string,
     any
   > | null>(null);
+  const clientRef = useRef<Client | null>(null);
 
   const handleConnect = (user: userInfo) => {
     setUserData(user);
@@ -50,6 +51,30 @@ export default function ChatApp() {
       },
     });
     client.activate();
+    clientRef.current = client;
+  };
+
+  const handleMessageSend = (
+    message: string,
+    sender: string | undefined,
+    recipient: string | null,
+  ) => {
+    if (clientRef.current && clientRef.current.connected) {
+      const chatMessage = {
+        senderId: sender,
+        recipientId: recipient,
+        content: message,
+        timeStamp: new Date(),
+      };
+
+      clientRef.current?.publish({
+        destination: "/app/chat",
+        headers: {},
+        body: JSON.stringify(chatMessage),
+      });
+    } else {
+      console.warn("WebSocket client is not connected");
+    }
   };
 
   return (
@@ -59,7 +84,11 @@ export default function ChatApp() {
         <UserForm onConnect={handleConnect} />
       ) : (
         // Passing the connected user info and client DOWN to ChatRoom
-        <UserChatRoom userData={userData} serverMessage={serverMessage} />
+        <UserChatRoom
+          userData={userData}
+          serverMessage={serverMessage}
+          onSendMessage={handleMessageSend}
+        />
       )}
     </div>
   );
