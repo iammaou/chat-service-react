@@ -96,6 +96,8 @@ a.logout {
   display: flex;
   flex-direction: column;
   overflow-y: scroll;
+  flex: 1;
+  min-width: 0;
 }
 
 .message-input {
@@ -205,6 +207,7 @@ a.logout {
 
 #chat-messages {
   display: flex;
+  flex: 1;
   flex-direction: column;
   overflow-y: scroll;
 }

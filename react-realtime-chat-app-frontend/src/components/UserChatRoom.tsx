@@ -57,6 +57,7 @@ export default function UserChatRoom({
   const [connectedUsers, setConnectedUsers] = useState<UserInfoServer[]>([]);
   const [notifiedUsers, setNotifiedUser] = useState<String[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
   //For fetching the whole user data from the server eighter on startup or when getting a message from the server
   useEffect(() => {
     const controller = new AbortController();
@@ -79,11 +80,18 @@ export default function UserChatRoom({
       );
     } else {
       fetchUserChat();
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
+
+    const timer = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+    }, 50);
 
     return () => {
       controller.abort();
+      clearTimeout(timer);
     };
   }, [userData?.nickname, serverMessage]);
 
@@ -95,6 +103,15 @@ export default function UserChatRoom({
       }
 
       fetchUserChat();
+
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "end",
+        });
+      }, 50);
+
+      return () => clearTimeout(timer);
     }
   }, [selectedUser]);
 
@@ -152,7 +169,10 @@ export default function UserChatRoom({
               </div>
             </React.Fragment>
           ))}
-          <div ref={messagesEndRef}></div>
+          <div
+            ref={messagesEndRef}
+            style={{ flexShrink: 0, height: "1px", width: "100%" }}
+          />
         </div>
         <form id="messageForm" name="messageForm">
           <div className="message-input">
