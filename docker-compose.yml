@@ -1,0 +1,58 @@
+services:
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    ports:
+      - 27017:27017
+    volumes:
+      - mongo:/data/db # <-- MUST BE /data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=pass
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - chat-network
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo_express
+    restart: always
+    ports:
+      - 8081:8081
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=pass
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - chat-network
+
+  backend:
+    build:
+      context: ./react-realtime-chat-app-backend
+      dockerfile: Dockerfile
+    container_name: chatapp_backend
+    ports:
+      - "8088:8088"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - SPRING_MONGODB_HOST=mongodb
+      - SPRING_MONGODB_PORT=27017
+      - SPRING_MONGODB_USERNAME=admin
+      - SPRING_MONGODB_PASSWORD=pass
+    networks:
+      - chat-network
+
+volumes:
+  mongo: {}
+
+networks:
+  chat-network:
