@@ -31,7 +31,7 @@ export default function ChatApp() {
             }
           },
         );
-        client.subscribe(`/user/public`, (message: IMessage) => {
+        client.subscribe(`/topic/public`, (message: IMessage) => {
           if (message.body) {
             const receivedData = JSON.parse(message.body);
             console.log("New Message:", receivedData);
@@ -39,15 +39,17 @@ export default function ChatApp() {
           }
         });
 
-        client.publish({
-          destination: `/app/user.addUser`,
-          headers: {},
-          body: JSON.stringify({
-            nickName: user.nickname,
-            fullName: user.realname,
-            status: "ONLINE",
-          }),
-        });
+        setTimeout(() => {
+          client.publish({
+            destination: `/app/user.addUser`,
+            headers: {},
+            body: JSON.stringify({
+              nickName: user.nickname,
+              fullName: user.realname,
+              status: "ONLINE",
+            }),
+          });
+        }, 100);
       },
     });
     client.activate();
@@ -77,6 +79,22 @@ export default function ChatApp() {
     }
   };
 
+  const handleLogout = () => {
+    if (clientRef.current && clientRef.current.connected) {
+      clientRef.current.publish({
+        destination: `/app/user.disconnectUser`,
+        headers: {},
+        body: JSON.stringify({
+          nickName: userData?.nickname,
+          fullName: userData?.realname,
+          status: "OFFLINE",
+        }),
+      });
+
+      window.location.reload();
+    }
+  };
+
   return (
     <div className="main">
       {!userData ? (
@@ -88,6 +106,7 @@ export default function ChatApp() {
           userData={userData}
           serverMessage={serverMessage}
           onSendMessage={handleMessageSend}
+          handleLogout={handleLogout}
         />
       )}
     </div>

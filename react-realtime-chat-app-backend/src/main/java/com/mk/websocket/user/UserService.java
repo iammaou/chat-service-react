@@ -16,6 +16,10 @@ public class UserService {
         repository.save(user);
     }
 
+    public User getUser(String nickName){
+        return repository.findByNickName(nickName);
+    }
+
     public void disconnect(User user){
         var storedUser = repository.findById(user.getNickName())
                 .orElse(null);

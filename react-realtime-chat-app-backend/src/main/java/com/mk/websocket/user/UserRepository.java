@@ -10,4 +10,6 @@ public interface UserRepository extends MongoRepository<User, String> {
     // Dynamic Query Derivation: Spring parses this method name automatically.
     // It generates a real MongoDB query under the hood: { status: "ONLINE" } without you writing any database code.
     List<User> findAllByStatus(Status status);
+
+    User findByNickName(String nickName);
 }

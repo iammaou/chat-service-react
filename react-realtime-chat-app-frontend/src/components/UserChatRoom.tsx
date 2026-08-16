@@ -13,6 +13,7 @@ interface UserChatRoomProps {
     sender: string | undefined,
     recipient: string | null,
   ) => void;
+  handleLogout: any;
 }
 
 interface UserInfoServer {
@@ -57,6 +58,7 @@ export default function UserChatRoom({
   userData,
   serverMessage,
   onSendMessage,
+  handleLogout,
 }: UserChatRoomProps) {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [userChat, setUserChat] = useState<UserChatInterface[]>([]);
@@ -163,7 +165,12 @@ export default function UserChatRoom({
         </div>
         <div>
           <p id="connected-user-fullname">{userData?.realname}</p>
-          <a className="logout" href="javascript:void(0)" id="logout">
+          <a
+            className="logout"
+            href="javascript:void(0)"
+            id="logout"
+            onClick={handleLogout}
+          >
             Logout
           </a>
         </div>

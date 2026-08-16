@@ -21,14 +21,14 @@ public class UserController {
     // Listens for WebSocket packets sent from React to the routing destination "/app/user.addUser"
     @MessageMapping("/user.addUser")
     // Megaphone effect: Whatever this method RETURNS is instantly broadcasted to everyone listening to "/user/public"
-    @SendTo("/user/public")
+    @SendTo("/topic/public")
     public User addUser(@Payload User user){ // @Payload extracts the incoming JSON packet and maps it to a Java User object v
         userService.saveUser(user);
         return user;
     }
 
     @MessageMapping("/user.disconnectUser")
-    @SendTo("/user/public")
+    @SendTo("/topic/public")
     public User disconnectUser(
             @Payload User user
     ){
