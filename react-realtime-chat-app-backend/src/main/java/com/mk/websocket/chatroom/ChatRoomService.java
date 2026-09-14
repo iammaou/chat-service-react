@@ -18,7 +18,7 @@ public class ChatRoomService {
     ){
         // 1. Check the database to see if this sender-to-recipient record exists
         return chatRoomRepository.findBySenderIdAndRecipientId(senderId, recipientId)
-                .map(ChatRoom::getChatId) // 2. Functional Mapping: If found, extract just the String 'chatId' from the ChatRoom object
+                .map(room -> room.getChatId()) // 2. Functional Mapping: If found, extract just the String 'chatId' from the ChatRoom object
                 .or(() -> { // 3. Lazy Evaluation: If the Optional is empty (no record found), run this backup block
                     if( createNewRoomIfNotExists ){
                         // Create a brand-new pair of records and get the generated ID
