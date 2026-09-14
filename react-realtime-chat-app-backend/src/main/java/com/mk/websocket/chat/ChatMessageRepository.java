@@ -1,6 +1,5 @@
 package com.mk.websocket.chat;
 
-import com.mk.websocket.chatroom.ChatRoom;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.List;

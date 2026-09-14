@@ -1,7 +1,6 @@
 package com.mk.websocket.chat;
 
 import lombok.*;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 @Getter
 @Setter
