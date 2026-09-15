@@ -1,6 +1,7 @@
 package com.mk.websocket.config;
 
-import com.mk.websocket.user.User;
+import com.mk.websocket.user.UserDTO;
+
 import lombok.AllArgsConstructor;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
@@ -25,7 +26,7 @@ public class WebSocketEventListener {
             String nickName = (String) sessionAttributes.get("nickName");
 
             if(nickName != null) {
-                User disconnectedUser = userService.getUser(nickName);
+                UserDTO disconnectedUser = userService.getUser(nickName);
                 userService.disconnect(disconnectedUser);
 
                 messagingTemplate.convertAndSend("/topic/public", disconnectedUser);

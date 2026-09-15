@@ -10,18 +10,23 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository repository;
+    private final UserMapper mapper;
 
-    public void saveUser(User user){
-        user.setStatus(Status.ONLINE);
-        repository.save(user);
+    public UserDTO saveUser(UserDTO userDTO){
+        userDTO.setStatus(Status.ONLINE);
+        repository.save(mapper.toUser(userDTO));
+
+        return userDTO;
     }
 
-    public User getUser(String nickName){
-        return repository.findByNickName(nickName);
+    public UserDTO getUser(String nickName){
+        User user = repository.findByNickName(nickName);
+
+        return mapper.toDTO(user);
     }
 
-    public void disconnect(User user){
-        var storedUser = repository.findById(user.getNickName())
+    public void disconnect(UserDTO userDTO){
+        var storedUser = repository.findById(mapper.toUser(userDTO).getNickName())
                 .orElse(null);
         if(storedUser != null){
             storedUser.setStatus(Status.OFFLINE);
@@ -29,7 +34,11 @@ public class UserService {
         }
     }
 
-    public List<User> findConnectedUsers(){
-        return repository.findAllByStatus(Status.ONLINE);
+    public List<UserDTO> findConnectedUsers(){
+        List<User> users = repository.findAllByStatus(Status.ONLINE);
+
+        return users.stream()
+            .map(mapper::toDTO)
+            .toList();
     }
 }

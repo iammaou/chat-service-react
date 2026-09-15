@@ -1,42 +1,25 @@
 package com.mk.websocket.user;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-
 import java.util.List;
 
-@Controller
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/users")
 @RequiredArgsConstructor
 @CrossOrigin
 public class UserController {
 
     private final UserService userService;
 
-    // Listens for WebSocket packets sent from React to the routing destination "/app/user.addUser"
-    @MessageMapping("/user.addUser")
-    // Megaphone effect: Whatever this method RETURNS is instantly broadcasted to everyone listening to "/user/public"
-    @SendTo("/topic/public")
-    public User addUser(@Payload User user){ // @Payload extracts the incoming JSON packet and maps it to a Java User object v
-        userService.saveUser(user);
-        return user;
-    }
-
-    @MessageMapping("/user.disconnectUser")
-    @SendTo("/topic/public")
-    public User disconnectUser(
-            @Payload User user
-    ){
-        userService.disconnect(user);
-        return user;
-    }
-    @GetMapping("/users")
-    public ResponseEntity<List<User>> findConnectedUsers(){
+    @GetMapping
+    public ResponseEntity<List<UserDTO>> findConnectedUsers() {
         return ResponseEntity.ok(userService.findConnectedUsers());
     }
 }
