@@ -19,35 +19,42 @@ public class ChatController {
     // Gives you complete manual control over who receives packets, moving past generic @SendTo broadcast annotations.
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatMessageService chatMessageService;
+    private final ChatMessageMapper mapper;
 
     // WEBSOCKET: Processes an active text message sent from React to "/app/chat"
     @MessageMapping("/chat")
     public void processMessage(
-            @Payload ChatMessage chatMessage
+            @Payload IncomingChatMessageDTO incomingChatMessageDTO
     ){
         // Step 1: Pass the message to the service layer to bind its room ID and write it to MongoDB
-        ChatMessage savedMessage = chatMessageService.save(chatMessage);
+        ChatMessageDTO savedMessage = chatMessageService.save(incomingChatMessageDTO);
 
         // Step 2: The Target Delivery Magic
         // convertAndSendToUser intercepts the destination and handles it securely behind the scenes.
         // It appends the recipient's personal username session dynamically to the path.
         messagingTemplate.convertAndSendToUser(
-                savedMessage.getRecipientId(),
+                savedMessage.recipientId(),
                 "/queue/messages",
                 ChatNotification.builder()
-                        .id(savedMessage.getId())
-                        .senderId(savedMessage.getSenderId())
-                        .recipientId(savedMessage.getRecipientId())
-                        .content(savedMessage.getContent())
+                        .id(savedMessage.id())
+                        .senderId(savedMessage.senderId())
+                        .recipientId(savedMessage.recipientId())
+                        .content(savedMessage.content())
                         .build()
         );
     }
 
     @GetMapping("/messages/{senderId}/{recipientId}")
-    public ResponseEntity<List<ChatMessage>> findChatMessages(
+    public ResponseEntity<List<ChatMessageDTO>> findChatMessages(
             @PathVariable("senderId") String senderId,
             @PathVariable("recipientId") String recipientId
     ){
-        return ResponseEntity.ok(chatMessageService.findChatMessage(senderId, recipientId));
+        List<ChatMessage> allMessages = chatMessageService.findChatMessage(senderId, recipientId);
+
+        List<ChatMessageDTO> allMessagesDTO = allMessages.stream()
+            .map(mapper::toDTO)
+            .toList();
+
+        return ResponseEntity.ok(allMessagesDTO);
     }
 }

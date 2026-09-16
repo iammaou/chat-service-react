@@ -4,7 +4,7 @@ import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.Date;
+import java.time.Instant;
 
 @Getter
 @Setter
@@ -19,5 +19,5 @@ public class ChatMessage {
     private String senderId;
     private String recipientId;
     private String content;
-    private Date timeStamp;
+    private Instant timeStamp;
 }
