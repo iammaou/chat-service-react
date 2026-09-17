@@ -44,7 +44,7 @@ services:
       mongodb:
         condition: service_healthy
     environment:
-      - SPRING_DATA_MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/chat_app?authSource=admin
+      - SPRING_MONGODB_URI=mongodb://admin:pass@mongodb:27017/chat_app?authSource=admin
     networks:
       - chat-network
 

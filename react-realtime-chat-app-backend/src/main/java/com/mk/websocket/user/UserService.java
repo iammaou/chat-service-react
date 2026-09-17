@@ -22,7 +22,7 @@ public class UserService {
     public UserDTO getUser(String nickName){
         User user = repository.findByNickName(nickName);
 
-        return mapper.toDTO(user);
+        return user != null ? mapper.toDTO(user) : null;
     }
 
     public void disconnect(UserDTO userDTO){

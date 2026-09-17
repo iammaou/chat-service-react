@@ -1,56 +1,56 @@
 package com.mk.websocket.chatroom;
 
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ChatRoomService {
 
     private final ChatRoomRepository chatRoomRepository;
 
-    // Finds or creates a unique chat ID for a conversation between two users.
+    // Finds or creates a unique chat ID
     public Optional<String> getChatRoomId(
             String senderId,
             String recipientId,
             boolean createNewRoomIfNotExists
     ){
+        String user1 = (senderId.compareTo(recipientId) > 0) ? recipientId : senderId;
+        String user2 = (senderId.compareTo(recipientId) > 0) ? senderId : recipientId;
+
         // 1. Check the database to see if this sender-to-recipient record exists
-        return chatRoomRepository.findBySenderIdAndRecipientId(senderId, recipientId)
+        return chatRoomRepository.findByUser1AndUser2(user1, user2)
                 .map(room -> room.getChatId()) // 2. Functional Mapping: If found, extract just the String 'chatId' from the ChatRoom object
                 .or(() -> { // 3. Lazy Evaluation: If the Optional is empty (no record found), run this backup block
                     if( createNewRoomIfNotExists ){
                         // Create a brand-new pair of records and get the generated ID
-                        var chatId = createChatId(senderId, recipientId);
+                        var chatId = createChatId(user1, user2);
                         return Optional.of(chatId);
                     }
                     return Optional.empty(); // If we weren't allowed to create a new room, return empty
                 });
     }
 
-    // Internal Helper Method: Generates a shared Chat ID and builds BOTH directions in the database.
-    private String createChatId(String senderId, String recipientId) {
+    private String createChatId(String user1, String user2) {
         // Generates a predictable string format (e.g., "alice_bob")
-        var chatId = String.format("%s_%s", senderId, recipientId);
+        var chatId = String.format("%s_%s", user1, user2);
 
-        // PERSPECTIVE 1: From the sender's viewpoint
-        ChatRoom senderRecipient = ChatRoom.builder()
+        ChatRoom chatRoom = ChatRoom.builder()
                 .chatId(chatId)
-                .senderId(senderId)
-                .recipientId(recipientId)
+                .user1(user1)
+                .user2(user2)
                 .build();
 
-        // PERSPECTIVE 2: From the recipient's viewpoint (The Inverse)
-        // This is crucial so that when the recipient searches for their chats, they can find it instantly too!
-        ChatRoom recipientSender = ChatRoom.builder()
-                .chatId(chatId)
-                .senderId(recipientId)
-                .recipientId(senderId)
-                .build();
-
-        chatRoomRepository.save(senderRecipient);
-        chatRoomRepository.save(recipientSender);
+        try{
+            chatRoomRepository.save(chatRoom);
+        } catch (DuplicateKeyException e){
+            log.debug("Chat room {} already exists, reusing.", chatId);
+        }
 
         return chatId;
     }
