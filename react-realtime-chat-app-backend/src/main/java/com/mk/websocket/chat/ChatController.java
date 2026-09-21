@@ -8,8 +8,9 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.List;
+import java.time.Instant;
 
 @Controller
 @RequiredArgsConstructor
@@ -45,16 +46,13 @@ public class ChatController {
     }
 
     @GetMapping("/messages/{senderId}/{recipientId}")
-    public ResponseEntity<List<ChatMessageDTO>> findChatMessages(
+    public ResponseEntity<ChatMessageSliceDTO> findChatMessages(
             @PathVariable("senderId") String senderId,
-            @PathVariable("recipientId") String recipientId
+            @PathVariable("recipientId") String recipientId,
+            @RequestParam(required = false) Instant cursor
     ){
-        List<ChatMessage> allMessages = chatMessageService.findChatMessage(senderId, recipientId);
+        ChatMessageSliceDTO response = chatMessageService.getMessages(senderId, recipientId, cursor);
 
-        List<ChatMessageDTO> allMessagesDTO = allMessages.stream()
-            .map(mapper::toDTO)
-            .toList();
-
-        return ResponseEntity.ok(allMessagesDTO);
+        return ResponseEntity.ok(response);
     }
 }
