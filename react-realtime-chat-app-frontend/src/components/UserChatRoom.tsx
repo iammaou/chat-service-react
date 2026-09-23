@@ -4,16 +4,19 @@ import type { userInfo } from "./UserForm";
 import { useState } from "react";
 import { useEffect } from "react";
 import { useRef } from "react";
+import type { newMessageServerMessage, newUserServerMessage } from "../App";
+import type { MouseEvent } from "react";
 
 interface UserChatRoomProps {
   userData: userInfo | null;
-  serverMessage: Record<string, any> | null;
+  newMessageSockJS: newMessageServerMessage | null;
+  newUserSockJS: newUserServerMessage | null;
   onSendMessage: (
     message: string,
     sender: string | undefined,
     recipient: string | null,
   ) => void;
-  handleLogout: any;
+  handleLogout: () => void;
 }
 
 interface UserInfoServer {
@@ -56,7 +59,8 @@ export const fetchConnectedUserResponse = async (
 
 export default function UserChatRoom({
   userData,
-  serverMessage,
+  newMessageSockJS,
+  newUserSockJS,
   onSendMessage,
   handleLogout,
 }: UserChatRoomProps) {
@@ -110,11 +114,11 @@ export default function UserChatRoom({
         }
       });
 
-    if (serverMessage?.senderId !== selectedUser) {
+    const incomingSenderId = newMessageSockJS?.senderId;
+
+    if (incomingSenderId && incomingSenderId !== selectedUser) {
       setNotifiedUser((prev) =>
-        prev.includes(serverMessage?.senderId)
-          ? prev
-          : [...prev, serverMessage?.senderId],
+        prev.includes(incomingSenderId) ? prev : [...prev, incomingSenderId],
       );
     } else {
       fetchUserChat();
@@ -123,7 +127,7 @@ export default function UserChatRoom({
     return () => {
       controller.abort();
     };
-  }, [userData?.nickname, serverMessage]);
+  }, [userData?.nickname, newUserSockJS]);
 
   // For fetching the selectefd users chat
   useEffect(() => {
@@ -203,7 +207,7 @@ export default function UserChatRoom({
     }
   }
 
-  const onMessageSendButtonClick = (e: any) => {
+  const onMessageSendButtonClick = (e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
     if (userMessage == null || userMessage.trim() == "") {

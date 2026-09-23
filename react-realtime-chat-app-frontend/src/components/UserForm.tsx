@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { MouseEvent } from "react";
 
 export interface userInfo {
   nickname: string;
@@ -39,7 +40,7 @@ export default function UserForm({ onConnect }: UserFormProps) {
     </>
   );
 
-  function handleClick(e: any) {
+  function handleClick(e: MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
     if (nickname.trim()) {
       onConnect({ nickname, realname });

@@ -25,7 +25,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // THE INBOUND DESTINATION (React -> Java Controller)
         // Any message sent from the client that should be processed by your Java code (@MessageMapping)
         // MUST start with this prefix. Example: Client sends to "/app/user.addUser"
-        registry.enableSimpleBroker("/user", "topic");
+        registry.enableSimpleBroker("/user", "/topic");
 
         // THE OUTBOUND DESTINATION (Broker -> React Clients)
         // Configures an internal, in-memory traffic cop (Message Broker).

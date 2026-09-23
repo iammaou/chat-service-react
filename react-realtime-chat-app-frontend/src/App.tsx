@@ -7,12 +7,25 @@ import "./App.css";
 import UserForm, { type userInfo } from "./components/UserForm";
 import UserChatRoom from "./components/UserChatRoom";
 
+export interface newMessageServerMessage {
+  id: string;
+  senderId: string;
+  recipientId: string;
+  content: string;
+}
+
+export interface newUserServerMessage {
+  fullName: string;
+  nickName: string;
+  status: "ONLINE" | "OFFLINE";
+}
+
 export default function ChatApp() {
   const [userData, setUserData] = useState<userInfo | null>(null);
-  const [serverMessage, setServerMessage] = useState<Record<
-    string,
-    any
-  > | null>(null);
+  const [newMessageSockJS, setnewMessageSockJS] =
+    useState<newMessageServerMessage | null>(null);
+  const [newUserSockJS, setnewUserSockJS] =
+    useState<newUserServerMessage | null>(null);
   const clientRef = useRef<Client | null>(null);
 
   const handleConnect = (user: userInfo) => {
@@ -27,7 +40,7 @@ export default function ChatApp() {
             if (message.body) {
               const receivedData = JSON.parse(message.body);
               console.log("New Message:", receivedData);
-              setServerMessage(receivedData);
+              setnewMessageSockJS(receivedData);
             }
           },
         );
@@ -35,7 +48,7 @@ export default function ChatApp() {
           if (message.body) {
             const receivedData = JSON.parse(message.body);
             console.log("New Message:", receivedData);
-            setServerMessage(receivedData);
+            setnewUserSockJS(receivedData);
           }
         });
 
@@ -104,7 +117,8 @@ export default function ChatApp() {
         // Passing the connected user info and client DOWN to ChatRoom
         <UserChatRoom
           userData={userData}
-          serverMessage={serverMessage}
+          newMessageSockJS={newMessageSockJS}
+          newUserSockJS={newUserSockJS}
           onSendMessage={handleMessageSend}
           handleLogout={handleLogout}
         />
