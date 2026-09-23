@@ -67,7 +67,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // Adds our custom JSON converter to Spring's pipeline of message processors
         messageConverters.add(converter);
 
-        // Returning false tells Spring: "Don't completely overwrite your default converters, just append mine to the list."
+        // Returning false tells Spring: "Replace defaults with mine."
         return false;
     }
 }

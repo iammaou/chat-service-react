@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useLayoutEffect } from "react";
 import "../App.css";
 import type { userInfo } from "./UserForm";
 import { useState } from "react";
@@ -65,7 +65,36 @@ export default function UserChatRoom({
   const [connectedUsers, setConnectedUsers] = useState<UserInfoServer[]>([]);
   const [notifiedUsers, setNotifiedUser] = useState<String[]>([]);
   const [userMessage, setUserMessage] = useState("");
+  const [messageCursor, setMessageCursor] = useState(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesStartRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null); // Ref to the scrollable container
+  const previousScrollHeightRef = useRef<number>(0); // To store scroll height before update
+  const isReadyForMoreRef = useRef(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          isReadyForMoreRef.current && // <-- gate
+          messageCursor &&
+          !isLoadingMore
+        ) {
+          fetchUserChat("older");
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    const currentRef = messagesStartRef.current;
+    if (currentRef) observer.observe(currentRef);
+
+    return () => {
+      if (currentRef) observer.unobserve(currentRef);
+    };
+  }, [messageCursor, isLoadingMore, selectedUser]);
 
   //For fetching the whole user data from the server eighter on startup or when getting a message from the server
   useEffect(() => {
@@ -103,34 +132,84 @@ export default function UserChatRoom({
         setNotifiedUser((prev) => prev.filter((name) => name !== selectedUser));
       }
 
+      // Reset the gate — a new chat hasn't been scrolled to the bottom yet
+      isReadyForMoreRef.current = false;
+
       fetchUserChat();
     }
   }, [selectedUser]);
+
+  useLayoutEffect(() => {
+    if (previousScrollHeightRef.current && scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const difference =
+        container.scrollHeight - previousScrollHeightRef.current;
+      container.scrollTop = difference;
+      previousScrollHeightRef.current = 0;
+    }
+  }, [userChat]);
 
   function handleUserClick(user: string) {
     setSelectedUser(user);
   }
 
-  async function fetchUserChat() {
-    const userChatResponse = await fetch(
-      `${httpAddress}/messages/${userData?.nickname}/${selectedUser}`,
+  async function fetchUserChat(mode: "initial" | "older" = "initial") {
+    if (!selectedUser || !userData?.nickname) return;
+
+    // Only save scroll height if we're loading older messages
+    if (mode === "older" && scrollContainerRef.current) {
+      previousScrollHeightRef.current = scrollContainerRef.current.scrollHeight;
+    }
+
+    setIsLoadingMore(true);
+
+    console.log(
+      `${httpAddress}/messages/${userData.nickname}/${selectedUser}?nextCursor=${messageCursor}`,
     );
-    setUserChat(await userChatResponse.json());
 
-    const timer = setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "end",
-      });
-    }, 50);
+    // Build URL: only include the cursor when loading older messages
+    const url =
+      mode === "older" && messageCursor
+        ? `${httpAddress}/messages/${userData.nickname}/${selectedUser}?cursor=${messageCursor}`
+        : `${httpAddress}/messages/${userData.nickname}/${selectedUser}`;
 
-    console.log(userChat);
+    try {
+      const userChatResponse = await fetch(url);
+      const res = await userChatResponse.json();
 
-    return () => clearTimeout(timer);
+      const newMessages = res.messages.toReversed();
+
+      if (mode === "older") {
+        setUserChat((prev) => [...newMessages, ...prev]);
+      } else {
+        setUserChat(newMessages);
+
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "end",
+          });
+
+          // The initial scroll is done, now it's safe to allow "load older"
+          isReadyForMoreRef.current = true;
+        }, 50);
+      }
+
+      setMessageCursor(res.nextCursor);
+    } catch (err) {
+      console.error("Fetch error:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
   }
 
   const onMessageSendButtonClick = (e: any) => {
     e.preventDefault();
+
+    if (userMessage == null || userMessage.trim() == "") {
+      setUserMessage("");
+      return null;
+    }
 
     console.log(userMessage, userData?.nickname, selectedUser);
     onSendMessage(userMessage, userData?.nickname, selectedUser);
@@ -176,11 +255,16 @@ export default function UserChatRoom({
         </div>
       </div>
       <div className="chat-area">
-        <div className="chat-area" id="chat-messages">
-          {userChat.map((message) => (
+        <div className="chat-area" id="chat-messages" ref={scrollContainerRef}>
+          {userChat.map((message, index) => (
             <React.Fragment key={message.id}>
               <div
-                className={`message ${message.senderId === userData?.nickname ? "sender" : "receiver"}`}
+                ref={index === 0 ? messagesStartRef : null}
+                className={`message ${
+                  message.senderId === userData?.nickname
+                    ? "sender"
+                    : "receiver"
+                }`}
               >
                 <p>{message.content}</p>
               </div>

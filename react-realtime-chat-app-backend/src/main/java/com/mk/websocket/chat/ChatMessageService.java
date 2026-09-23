@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 @Service
 @RequiredArgsConstructor
 public class ChatMessageService {
@@ -27,7 +28,7 @@ public class ChatMessageService {
                 IncomingChatMessageDTO.senderId(),
                 IncomingChatMessageDTO.recipientId(),
                 true
-        ).orElseThrow();
+        ).orElseThrow( () -> new NoSuchElementException() );
         
         ChatMessage chatMessage = ChatMessage.builder()
             .chatId(chatId)
@@ -71,18 +72,4 @@ public class ChatMessageService {
 
         return new ChatMessageSliceDTO(messageDTOs, nextCursor);
     }
-
-    // public List<ChatMessage> findChatMessage(
-    //         String senderId, String recipientId
-    // ){
-    //     var chatId = chatRoomService.getChatRoomId(
-    //             senderId,
-    //             recipientId,
-    //             false
-    //     );
-
-    //     // Functional programming map: If the room exists, fetch its messages from the repository.
-    //     // If it doesn't exist, fall back safely to a blank ArrayList so React doesn't crash.
-    //     return chatId.map(repository::findByChatId).orElse(new ArrayList<>());
-    // }
 }
