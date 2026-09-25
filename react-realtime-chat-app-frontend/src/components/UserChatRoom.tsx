@@ -67,7 +67,7 @@ export default function UserChatRoom({
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [userChat, setUserChat] = useState<UserChatInterface[]>([]);
   const [connectedUsers, setConnectedUsers] = useState<UserInfoServer[]>([]);
-  const [notifiedUsers, setNotifiedUser] = useState<String[]>([]);
+  const [notifiedUsers, setNotifiedUser] = useState<string[]>([]);
   const [userMessage, setUserMessage] = useState("");
   const [messageCursor, setMessageCursor] = useState(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -100,48 +100,96 @@ export default function UserChatRoom({
     };
   }, [messageCursor, isLoadingMore, selectedUser]);
 
-  //For fetching the whole user data from the server eighter on startup or when getting a message from the server
   useEffect(() => {
-    const controller = new AbortController();
+    if (!userData?.nickname || !newMessageSockJS) return;
 
-    if (!userData?.nickname) return;
+    const { senderId, recipientId, content, id } = newMessageSockJS;
 
-    fetchConnectedUserResponse(userData, controller.signal)
-      .then((data) => setConnectedUsers(data))
-      .catch((err) => {
-        if (err.name !== "AbortError") {
-          console.error("Fetch error:", err);
+    if (
+      (senderId === selectedUser && recipientId === userData?.nickname) ||
+      (senderId === userData?.nickname && recipientId === selectedUser)
+    ) {
+      setUserChat((prev) => {
+        if (prev.some((msg) => msg.id === id)) return prev; //checks if we already have this message
+
+        const tempIndex = prev.findIndex(
+          (msg) =>
+            msg.id.startsWith("temp-") &&
+            msg.content === content &&
+            msg.senderId === senderId,
+        );
+
+        if (tempIndex !== -1) {
+          //checks if the message is in there as a temp message
+          const newState = [...prev];
+
+          const realMessage: UserChatInterface = {
+            chatId: [senderId, recipientId].sort().join("_"),
+            content: content,
+            id: id,
+            recipientId: recipientId,
+            senderId: senderId,
+            timestamp: prev[tempIndex].timestamp,
+          };
+
+          newState[tempIndex] = realMessage;
+
+          return newState;
         }
+
+        const newMessage: UserChatInterface = {
+          chatId: [senderId, recipientId].sort().join("_"),
+          content: content,
+          id: id,
+          recipientId: recipientId,
+          senderId: senderId,
+          timestamp: new Date(),
+        };
+
+        return [...prev, newMessage];
       });
 
-    const incomingSenderId = newMessageSockJS?.senderId;
-
-    if (incomingSenderId && incomingSenderId !== selectedUser) {
-      setNotifiedUser((prev) =>
-        prev.includes(incomingSenderId) ? prev : [...prev, incomingSenderId],
-      );
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 50);
     } else {
-      fetchUserChat();
+      if (senderId !== selectedUser && senderId !== userData.nickname)
+        setNotifiedUser((prev) =>
+          prev.includes(senderId) ? prev : [...prev, senderId],
+        );
     }
+  }, [userData?.nickname, newMessageSockJS, selectedUser]);
 
-    return () => {
-      controller.abort();
-    };
-  }, [userData?.nickname, newUserSockJS]);
-
-  // For fetching the selectefd users chat
+  // For fetching the selected users chat
   useEffect(() => {
     if (selectedUser !== null) {
-      if (notifiedUsers.includes(selectedUser)) {
-        setNotifiedUser((prev) => prev.filter((name) => name !== selectedUser));
-      }
+      console.log("switched selected user");
+      console.log("selected user: " + selectedUser);
+      console.log("list of notified users:" + notifiedUsers);
+      setNotifiedUser((prev) => prev.filter((name) => name !== selectedUser));
+      console.log("filterd out");
 
+      setMessageCursor(null);
+      setUserChat([]);
       // Reset the gate — a new chat hasn't been scrolled to the bottom yet
       isReadyForMoreRef.current = false;
 
       fetchUserChat();
     }
   }, [selectedUser]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    if (!userData?.nickname) return;
+
+    fetchConnectedUserResponse(userData, controller.signal)
+      .then((data) => setConnectedUsers(data))
+      .catch((err) => {
+        if (err.name !== "AbortError") console.error("Fetch error:", err);
+      });
+
+    return () => controller.abort();
+  }, [userData?.nickname, newUserSockJS]);
 
   useLayoutEffect(() => {
     if (previousScrollHeightRef.current && scrollContainerRef.current) {
@@ -167,10 +215,6 @@ export default function UserChatRoom({
 
     setIsLoadingMore(true);
 
-    console.log(
-      `${httpAddress}/messages/${userData.nickname}/${selectedUser}?nextCursor=${messageCursor}`,
-    );
-
     // Build URL: only include the cursor when loading older messages
     const url =
       mode === "older" && messageCursor
@@ -180,7 +224,6 @@ export default function UserChatRoom({
     try {
       const userChatResponse = await fetch(url);
       const res = await userChatResponse.json();
-
       const newMessages = res.messages.toReversed();
 
       if (mode === "older") {
@@ -210,17 +253,30 @@ export default function UserChatRoom({
   const onMessageSendButtonClick = (e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
-    if (userMessage == null || userMessage.trim() == "") {
+    if (!userMessage.trim() || !selectedUser || !userData?.nickname) {
       setUserMessage("");
-      return null;
+      return;
     }
 
-    console.log(userMessage, userData?.nickname, selectedUser);
+    // tempMessage for eagerloading
+    const tempMessage: UserChatInterface = {
+      id: `temp-${Date.now()}`, // Temporary ID
+      content: userMessage,
+      senderId: userData?.nickname,
+      recipientId: selectedUser,
+      timestamp: new Date(),
+      chatId: "temp-chat", // Placeholder
+    };
+
+    setUserChat((prev) => [...prev, tempMessage]);
+
     onSendMessage(userMessage, userData?.nickname, selectedUser);
 
     setUserMessage("");
 
-    fetchUserChat();
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 50);
   };
 
   return (
@@ -279,7 +335,11 @@ export default function UserChatRoom({
             style={{ flexShrink: 0, height: "1px", width: "100%" }}
           />
         </div>
-        <form id="messageForm" name="messageForm">
+        <form
+          className={selectedUser === null ? "hidden" : ""}
+          id="messageForm"
+          name="messageForm"
+        >
           <div className="message-input">
             <input
               autoComplete="off"
