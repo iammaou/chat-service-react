@@ -88,7 +88,7 @@ export default function ChatApp() {
         body: JSON.stringify(chatMessage),
       });
     } else {
-      console.warn("WebSocket client is not connected");
+      console.error("WebSocket client is not connected");
     }
   };
 
@@ -105,6 +105,8 @@ export default function ChatApp() {
       });
 
       window.location.reload();
+
+      clientRef.current.deactivate();
     }
   };
 

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { MouseEvent } from "react";
 
 export interface userInfo {
   nickname: string;
@@ -21,29 +20,32 @@ export default function UserForm({ onConnect }: UserFormProps) {
       <div className="main_userForm">
         <h2>Enter Chatroom</h2>
 
-        <form id="usernameForm">
+        <form
+          id="usernameForm"
+          onSubmit={(e: React.SubmitEvent<HTMLFormElement>) => {
+            e.preventDefault();
+            if (nickname.trim()) {
+              onConnect({ nickname, realname });
+            }
+          }}
+        >
           <label>Nickname:</label>
           <input
             type="text"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
           />
+
           <label>Real name:</label>
           <input
             type="text"
             value={realname}
             onChange={(e) => setRealname(e.target.value)}
           />
-          <button onClick={handleClick}>Enter Chatroom</button>
+
+          <button type="submit">Enter Chatroom</button>
         </form>
       </div>
     </>
   );
-
-  function handleClick(e: MouseEvent<HTMLButtonElement>) {
-    e.preventDefault();
-    if (nickname.trim()) {
-      onConnect({ nickname, realname });
-    }
-  }
 }

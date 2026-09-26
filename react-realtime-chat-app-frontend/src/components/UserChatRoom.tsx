@@ -158,16 +158,12 @@ export default function UserChatRoom({
           prev.includes(senderId) ? prev : [...prev, senderId],
         );
     }
-  }, [userData?.nickname, newMessageSockJS, selectedUser]);
+  }, [userData?.nickname, newMessageSockJS]);
 
   // For fetching the selected users chat
   useEffect(() => {
     if (selectedUser !== null) {
-      console.log("switched selected user");
-      console.log("selected user: " + selectedUser);
-      console.log("list of notified users:" + notifiedUsers);
       setNotifiedUser((prev) => prev.filter((name) => name !== selectedUser));
-      console.log("filterd out");
 
       setMessageCursor(null);
       setUserChat([]);
@@ -291,7 +287,7 @@ export default function UserChatRoom({
                 key={user.nickName}
                 onClick={() => handleUserClick(user.nickName)}
               >
-                <img src="../../random-person.jpeg" alt="random person image" />
+                <img src="/random-person.jpeg" alt="random person image" />
                 {user.nickName}
                 <span
                   className={
