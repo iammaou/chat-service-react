@@ -1,7 +1,7 @@
 # =======================================================
 # Stage 1: Build the React app with Vite
 # =======================================================
-FROM node:20.18.1-alpine3.20 AS build
+FROM node:20.19.0-alpine3.20 AS build
 
 WORKDIR /app
 
