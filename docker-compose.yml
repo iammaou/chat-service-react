@@ -1,14 +1,13 @@
 services:
   mongo:
-    image: mongo
-    container_name: mongodb
+    image: mongo:7.0.14
     ports:
-      - 27017:27017
+      - "27017:27017"
     volumes:
-      - mongo:/data/db # <-- MUST BE /data/db
+      - mongo:/data/db
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=pass
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS}
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 5s
@@ -18,15 +17,14 @@ services:
       - chat-network
 
   mongo-express:
-    image: mongo-express
-    container_name: mongo_express
+    image: mongo-express:1.0.2-20
     restart: always
     ports:
-      - 8081:8081
+      - "8081:8081"
     environment:
-      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
-      - ME_CONFIG_MONGODB_ADMINPASSWORD=pass
-      - ME_CONFIG_MONGODB_SERVER=mongo
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USER}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASS}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USER}:${MONGO_PASS}@mongo:27017/
     depends_on:
       mongo:
         condition: service_healthy
@@ -37,14 +35,28 @@ services:
     build:
       context: ./react-realtime-chat-app-backend
       dockerfile: Dockerfile
-    container_name: chatapp_backend
     ports:
       - "8088:8088"
     depends_on:
       mongo:
         condition: service_healthy
     environment:
-      - SPRING_MONGODB_URI=mongodb://admin:pass@mongodb:27017/chat_app?authSource=admin
+      SPRING_MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASS}@mongo:27017/chat_app?authSource=admin
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      SERVER_PORT: 8088
+    networks:
+      - chat-network
+
+  frontend:
+    build:
+      context: ./react-realtime-chat-app-frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
     networks:
       - chat-network
 

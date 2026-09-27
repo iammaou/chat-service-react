@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Client, type IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 
@@ -20,6 +20,8 @@ export interface newUserServerMessage {
   status: "ONLINE" | "OFFLINE";
 }
 
+export const httpAddress = "http://localhost:8088";
+
 export default function ChatApp() {
   const [userData, setUserData] = useState<userInfo | null>(null);
   const [newMessageSockJS, setnewMessageSockJS] =
@@ -28,10 +30,51 @@ export default function ChatApp() {
     useState<newUserServerMessage | null>(null);
   const clientRef = useRef<Client | null>(null);
 
+  const publishOffline = useCallback(() => {
+    const client = clientRef.current;
+    if (client?.connected && userData) {
+      try {
+        client.publish({
+          destination: `/app/user.disconnectUser`,
+          headers: {},
+          body: JSON.stringify({
+            nickName: userData.nickname,
+            fullName: userData.realname,
+            status: "OFFLINE",
+          }),
+        });
+      } catch {}
+    }
+  }, [userData]);
+
+  useEffect(() => {
+    if (!userData) return;
+
+    const handlePageHide = (event: PageTransitionEvent) => {
+      if (event.persisted) return;
+      publishOffline();
+
+      const payload = JSON.stringify({
+        nickName: userData.nickname,
+        fullName: userData.realname,
+        status: "OFFILNE",
+      });
+
+      navigator.sendBeacon(
+        `${httpAddress}/api/disconnect`,
+        new Blob([payload], { type: "application/json" }),
+      );
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    return () => window.removeEventListener("pagehide", handlePageHide);
+  }, [userData, publishOffline]);
+
   const handleConnect = (user: userInfo) => {
     setUserData(user);
     const client = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:8088/ws"),
+      webSocketFactory: () =>
+        new SockJS(import.meta.env.VITE_WS_URL || "http://localhost:8088/ws"),
       reconnectDelay: 500,
       onConnect: () => {
         client.subscribe(
@@ -93,21 +136,9 @@ export default function ChatApp() {
   };
 
   const handleLogout = () => {
-    if (clientRef.current && clientRef.current.connected) {
-      clientRef.current.publish({
-        destination: `/app/user.disconnectUser`,
-        headers: {},
-        body: JSON.stringify({
-          nickName: userData?.nickname,
-          fullName: userData?.realname,
-          status: "OFFLINE",
-        }),
-      });
-
-      window.location.reload();
-
-      clientRef.current.deactivate();
-    }
+    publishOffline();
+    clientRef.current?.deactivate();
+    window.location.reload();
   };
 
   return (

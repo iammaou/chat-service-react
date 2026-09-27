@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useRef } from "react";
 import type { newMessageServerMessage, newUserServerMessage } from "../App";
 import type { MouseEvent } from "react";
+import { httpAddress } from "../App";
 
 interface UserChatRoomProps {
   userData: userInfo | null;
@@ -33,8 +34,6 @@ interface UserChatInterface {
   senderId: string;
   timestamp: Date | null;
 }
-
-const httpAddress = "http://localhost:8088";
 
 export const fetchConnectedUserResponse = async (
   userData: userInfo | null,
